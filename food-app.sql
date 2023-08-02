@@ -1,93 +1,77 @@
-# DROP TABLE & COLUMN
-
-DROP TABLE user;
-DROP TABLE restaurant;
-DROP TABLE rate_res;
-DROP TABLE like_res;
-DROP TABLE food;
-DROP TABLE food_type;
-DROP TABLE food_order;
-DROP TABLE sub_food;
-
-ALTER TABLE restaurant
-ADD description VARCHAR(200);
-
 # CREATE TABLE
-
 CREATE TABLE user (
-user_id INT PRIMARY KEY AUTO_INCREMENT,
-full_name VARCHAR(50),
-email VARCHAR(100),
-password VARCHAR(100)
+  user_id INT PRIMARY KEY AUTO_INCREMENT,
+  full_name VARCHAR(50),
+  email VARCHAR(100),
+  password VARCHAR(100)
 );
 
 CREATE TABLE restaurant (
-res_id INT PRIMARY KEY AUTO_INCREMENT,
-res_name VARCHAR(100),
-image VARCHAR(200),
-description VARCHAR(200)
+  res_id INT PRIMARY KEY AUTO_INCREMENT,
+  res_name VARCHAR(100),
+  image VARCHAR(200),
+  description VARCHAR(200)
 );
 
 CREATE TABLE rate_res (
-user_id INT,
-res_id INT,
-amount INT,
-date_rate DATETIME,
+  user_id INT,
+  res_id INT,
+  amount INT,
+  date_rate DATETIME,
 
-PRIMARY KEY (user_id, res_id),
-FOREIGN KEY (user_id) REFERENCES user(user_id),
-FOREIGN KEY (res_id) REFERENCES restaurant(res_id)
+  PRIMARY KEY (user_id, res_id),
+  FOREIGN KEY (user_id) REFERENCES user(user_id),
+  FOREIGN KEY (res_id) REFERENCES restaurant(res_id)
 );
 
 CREATE TABLE like_res (
-user_id INT,
-res_id INT,
-date_like DATETIME,
+  user_id INT,
+  res_id INT,
+  date_like DATETIME,
 
-PRIMARY KEY (user_id, res_id),
-FOREIGN KEY (user_id) REFERENCES user(user_id),
-FOREIGN KEY (res_id) REFERENCES restaurant(res_id)
+  PRIMARY KEY (user_id, res_id),
+  FOREIGN KEY (user_id) REFERENCES user(user_id),
+  FOREIGN KEY (res_id) REFERENCES restaurant(res_id)
 );
 
 CREATE TABLE food_type (
-type_id INT PRIMARY KEY AUTO_INCREMENT,
-type_name VARCHAR(200)
+  type_id INT PRIMARY KEY AUTO_INCREMENT,
+  type_name VARCHAR(200)
 );
 
 CREATE TABLE food (
-food_id INT PRIMARY KEY AUTO_INCREMENT,
-food_name VARCHAR(200),
-image VARCHAR(200),
-price FLOAT,
-description VARCHAR(200),
-type_id INT,
+  food_id INT PRIMARY KEY AUTO_INCREMENT,
+  food_name VARCHAR(200),
+  image VARCHAR(200),
+  price FLOAT,
+  description VARCHAR(200),
+  type_id INT,
 
-FOREIGN KEY (type_id) REFERENCES food_type(type_id)
+  FOREIGN KEY (type_id) REFERENCES food_type(type_id)
 );
 
 CREATE TABLE sub_food (
-sub_id INT PRIMARY KEY AUTO_INCREMENT,
-sub_name VARCHAR(100),
-sub_price FLOAT,
-food_id INT,
+  sub_id INT PRIMARY KEY AUTO_INCREMENT,
+  sub_name VARCHAR(100),
+  sub_price FLOAT,
+  food_id INT,
 
-FOREIGN KEY (food_id) REFERENCES food(food_id)
+  FOREIGN KEY (food_id) REFERENCES food(food_id)
 );
 
 CREATE TABLE food_order (
-user_id INT,
-food_id INT,
-amount INT,
-code VARCHAR(100),
-arr_sub_id VARCHAR(200),
+  user_id INT,
+  food_id INT,
+  amount INT,
+  code VARCHAR(100),
+  arr_sub_id VARCHAR(200),
 
-PRIMARY KEY (user_id, food_id),
-FOREIGN KEY (user_id) REFERENCES user(user_id),
-FOREIGN KEY (food_id) REFERENCES food(food_id)
+  PRIMARY KEY (user_id, food_id),
+  FOREIGN KEY (user_id) REFERENCES user(user_id),
+  FOREIGN KEY (food_id) REFERENCES food(food_id)
 );
 
 # INSERT DATA
-
 INSERT INTO user (full_name, email, password) VALUES
 ('John Doe', 'johndoe@example.com', 'password1'),
 ('Jane Doe', 'janedoe@example.com', 'password2'),
@@ -133,7 +117,17 @@ INSERT INTO like_res (user_id, res_id, date_like) VALUES
 (7, 3, '2023-07-31 22:16:00'),
 (8, 1, '2023-07-31 22:17:00'),
 (9, 7, '2023-07-31 22:18:00'),
-(3, 3, '2023-07-31 22:19:00');
+(3, 3, '2023-07-31 22:19:00'),
+(1, 7, '2023-07-31 22:10:00'),
+(2, 2, '2023-07-31 22:11:00'),
+(3, 7, '2023-07-31 22:12:00'),
+(4, 1, '2023-07-31 22:13:00'),
+(1, 2, '2023-07-31 22:14:00'),
+(2, 3, '2023-07-31 22:15:00'),
+(3, 5, '2023-07-31 22:16:00'),
+(1, 8, '2023-07-31 22:17:00'),
+(4, 2, '2023-07-31 22:18:00'),
+(3, 4, '2023-07-31 22:19:00');
 
 INSERT INTO food_type (type_name) VALUES
 ('Pizza'),
@@ -204,3 +198,38 @@ INSERT INTO food_order (user_id, food_id, amount, code, arr_sub_id) VALUES
 (4, 2, 7, 'KK7890', '19,20');
 
 # MySQL Queries
+# Tìm 5 người đã like nhà hàng nhiều nhất
+SELECT *
+FROM (SELECT user_id, COUNT(res_id) AS like_num
+      FROM like_res
+      GROUP BY user_id
+      ORDER BY like_num desc) AS count_res LEFT JOIN user ON user.user_id = count_res.user_id
+LIMIT 5;
+
+# Tìm 2 nhà hàng có lượt like nhiều nhất
+SELECT *
+FROM (SELECT res_id, COUNT(user_id) AS num_user_like
+      FROM like_res
+      GROUP BY res_id
+      ORDER BY num_user_like desc) AS count_user LEFT JOIN restaurant AS res ON res.res_id = count_user.res_id
+LIMIT 2;
+
+# Tìm người đã đặt hàng nhiều nhất
+SELECT food_order.user_id, SUM(amount) AS order_num, user.full_name, user.email
+FROM food_order LEFT JOIN user ON user.user_id = food_order.user_id
+GROUP BY food_order.user_id
+ORDER BY order_num DESC
+LIMIT 1;
+
+# Tìm người dùng không hoạt động trong hệ thống (không đặt hàng, không like, không đánh giá nhà hàng)
+SELECT *
+FROM (user LEFT JOIN like_res ON like_res.user_id = user.user_id
+			LEFT JOIN rate_res ON rate_res.user_id = user.user_id
+			LEFT JOIN food_order ON food_order.user_id = user.user_id)
+WHERE like_res.res_id IS NULL AND rate_res.res_id IS NULL AND food_order.food_id IS NULL
+
+# Tính trung bình sub_food của một food
+SELECT AVG(sub_num) As avg_sub_per_food
+FROM (SELECT food_id, COUNT(food_id) AS sub_num
+      FROM sub_food
+      GROUP BY food_id) AS count_sub_food
